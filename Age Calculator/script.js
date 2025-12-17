@@ -1,48 +1,122 @@
-const form = document.getElementById("form");
-const output = document.getElementById("output");
+console.log("Age Calculator Loaded");
+
+const day = document.getElementById("day");
+const month = document.getElementById("month");
+const year = document.getElementById("year");
+
+const btn = document.getElementById("calcBtn");
+const result = document.getElementById("result");
 const error = document.getElementById("error");
 
-form.addEventListener("submit", (e) => {
-  e.preventDefault();
+// auto format inputs
+function formatInput(input, len){
+  input.addEventListener("input",()=>{
+    if(input.value.length > len){
+      input.value = input.value.slice(0,len);
+    }
+  });
+}
+formatInput(day,2);
+formatInput(month,2);
+formatInput(year,4);
 
-  let d = parseInt(document.getElementById("day").value);
-  let m = parseInt(document.getElementById("month").value) - 1;
-  let y = parseInt(document.getElementById("year").value);
-
-  // FIXED validation
-  if (isNaN(d) || isNaN(m) || isNaN(y)) {
-    error.textContent = "Please fill all fields!";
-    return;
+// reusable validator
+function validate(){
+  if(!day.value || !month.value || !year.value){
+    return "Please fill all fields!";
   }
-
-  let dob = new Date(y, m, d);
-  let today = new Date();
-
-  if (dob > today) {
-    error.textContent = "Invalid Date! Enter correct birth date.";
-    return;
+  if(month.value < 1 || month.value > 12){
+    return "Month must be 1-12";
   }
+  if(day.value < 1 || day.value > 31){
+    return "Day must be 1-31";
+  }
+  let d = new Date(year.value, month.value-1, day.value);
+  let now = new Date();
 
-  error.textContent = "";
+  if(d > now){
+    return "Future date not allowed";
+  }
+  return null;
+}
 
-  let years = today.getFullYear() - dob.getFullYear();
-  let months = today.getMonth() - dob.getMonth();
-  let days = today.getDate() - dob.getDate();
+// reusable utility: calculate difference
+function calculateAge(){
+  let birth = new Date(year.value, month.value - 1, day.value);
+  let now = new Date();
 
-  if (days < 0) {
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  let days = now.getDate() - birth.getDate();
+
+  if(days < 0){
     months--;
-    days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+    days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
   }
 
-  if (months < 0) {
+  if(months < 0){
     years--;
     months += 12;
   }
 
-  output.classList.remove("hidden");
-  output.innerHTML = `
-      <strong>${years}</strong> Years 
-      <strong>${months}</strong> Months 
-      <strong>${days}</strong> Days
-  `;
+  return {years,months,days};
+}
+
+// highlight result animation
+function animate(){
+  result.style.opacity = "0";
+  setTimeout(()=>{
+    result.style.opacity="1";
+  },200);
+}
+
+// handle btn click
+btn.addEventListener("click",()=>{
+
+  console.time("calculation");
+  
+  const msg = validate();
+  if(msg){
+    result.textContent="";
+    error.textContent = msg;
+    return;
+  }
+
+  error.textContent="";
+
+  const age = calculateAge();
+  result.textContent = 
+      `You are ${age.years} Years, ${age.months} Months, ${age.days} Days`;
+
+  animate();
+  console.timeEnd("calculation");
+});
+
+// debugging helpers
+function debugInputs(){
+  console.table({
+    day:day.value,
+    month:month.value,
+    year:year.value
+  });
+}
+
+// auto log inputs every 5 sec
+setInterval(()=>{
+  debugInputs();
+},5000);
+
+// keyboard support
+document.addEventListener("keyup",(e)=>{
+  if(e.key === "Enter"){
+    btn.click();
+  }
+});
+
+// clear result on input change
+[day,month,year].forEach(el=>{
+  el.addEventListener("input",()=>{
+    result.textContent="";
+    error.textContent="";
+  });
 });
